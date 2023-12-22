@@ -1,5 +1,5 @@
 import 'dart:async';
-
+import 'package:geolocator/geolocator.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
@@ -23,6 +23,7 @@ class MyApp extends StatelessWidget {
     );
   }
 }
+
 class GpsMapApp extends StatefulWidget {
   const GpsMapApp({super.key});
 
@@ -32,7 +33,7 @@ class GpsMapApp extends StatefulWidget {
 
 class GpsMapAppState extends State<GpsMapApp> {
   final Completer<GoogleMapController> _controller =
-  Completer<GoogleMapController>();
+      Completer<GoogleMapController>();
 
   static const CameraPosition _kGooglePlex = CameraPosition(
     target: LatLng(37.42796133580664, -122.085749655962),
@@ -46,10 +47,23 @@ class GpsMapAppState extends State<GpsMapApp> {
       zoom: 19.151926040649414);
 
   @override
+  void initState() {
+    super.initState();
+
+    init();
+  }
+
+  Future<void> init() async {
+    final position = await _determinePosition();
+
+    print(position.toString());
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: GoogleMap(
-        mapType: MapType.hybrid,
+        mapType: MapType.normal,
         initialCameraPosition: _kGooglePlex,
         onMapCreated: (GoogleMapController controller) {
           _controller.complete(controller);
@@ -65,6 +79,36 @@ class GpsMapAppState extends State<GpsMapApp> {
 
   Future<void> _goToTheLake() async {
     final GoogleMapController controller = await _controller.future;
-    await controller.animateCamera(CameraUpdate.newCameraPosition(_kLake));
+    final position = await Geolocator.getCurrentPosition();
+    final cameraPosition = CameraPosition(
+      target: LatLng(position.latitude, position.longitude),
+      zoom: 18,
+    );
+    await controller
+        .animateCamera(CameraUpdate.newCameraPosition(cameraPosition));
+  }
+
+  Future<Position> _determinePosition() async {
+    bool serviceEnabled;
+    LocationPermission permission;
+
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      return Future.error('Location services are disabled.');
+    }
+
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        return Future.error('Location permissions are denied');
+      }
+    }
+
+    if (permission == LocationPermission.deniedForever) {
+      return Future.error(
+          'Location permissions are permanently denied, we cannot request permissions.');
+    }
+    return await Geolocator.getCurrentPosition();
   }
 }
