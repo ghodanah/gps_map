@@ -37,6 +37,10 @@ class GpsMapAppState extends State<GpsMapApp> {
 
   CameraPosition? _initialCameraPosition;
 
+  int _polylineIdCounter = 0;
+  Set<Polyline> _polylines = {};
+  LatLng? _prevPosition;
+
   @override
   void initState() {
     super.initState();
@@ -57,7 +61,23 @@ class GpsMapAppState extends State<GpsMapApp> {
     const locationSettings = LocationSettings();
     Geolocator.getPositionStream(locationSettings: locationSettings)
         .listen((Position) {
-          _moveCamera(position);
+      _polylineIdCounter++;
+      final polylineId = PolylineId('$_polylineIdCounter');
+      Polyline polyline = Polyline(
+        polylineId: polylineId,
+        color: Colors.red,
+        width: 3,
+        points: [
+          _prevPosition ?? _initialCameraPosition!.target,
+          LatLng(position.latitude, position.longitude),
+        ],
+      );
+      setState(() {
+        _polylines.add(polyline);
+        _prevPosition = LatLng(position.latitude, position.longitude);
+      });
+
+      _moveCamera(position);
     });
   }
 
@@ -72,6 +92,7 @@ class GpsMapAppState extends State<GpsMapApp> {
               onMapCreated: (GoogleMapController controller) {
                 _controller.complete(controller);
               },
+              polylines: _polylines,
             ),
     );
   }
