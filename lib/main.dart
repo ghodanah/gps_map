@@ -48,6 +48,8 @@ class GpsMapAppState extends State<GpsMapApp> {
     init();
   }
 
+
+
   Future init() async {
     final position = await _determinePosition();
 
