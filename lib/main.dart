@@ -1,7 +1,9 @@
 import 'dart:async';
-import 'package:geolocator/geolocator.dart';
+
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+
+import 'package:geolocator/geolocator.dart';
 
 void main() {
   runApp(const MyApp());
@@ -16,8 +18,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Flutter Demo',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        useMaterial3: true,
+        primarySwatch: Colors.blue,
       ),
       home: const GpsMapApp(),
     );
@@ -32,8 +33,7 @@ class GpsMapApp extends StatefulWidget {
 }
 
 class GpsMapAppState extends State<GpsMapApp> {
-  final Completer<GoogleMapController> _controller =
-      Completer<GoogleMapController>();
+  final Completer<GoogleMapController> _controller = Completer();
 
   CameraPosition? _initialCameraPosition;
 
@@ -48,7 +48,7 @@ class GpsMapAppState extends State<GpsMapApp> {
     init();
   }
 
-  Future<void> init() async {
+  Future init() async {
     final position = await _determinePosition();
 
     _initialCameraPosition = CameraPosition(
@@ -60,10 +60,10 @@ class GpsMapAppState extends State<GpsMapApp> {
 
     const locationSettings = LocationSettings();
     Geolocator.getPositionStream(locationSettings: locationSettings)
-        .listen((Position) {
+        .listen((Position position) {
       _polylineIdCounter++;
       final polylineId = PolylineId('$_polylineIdCounter');
-      Polyline polyline = Polyline(
+      final polyline = Polyline(
         polylineId: polylineId,
         color: Colors.red,
         width: 3,
@@ -72,6 +72,7 @@ class GpsMapAppState extends State<GpsMapApp> {
           LatLng(position.latitude, position.longitude),
         ],
       );
+
       setState(() {
         _polylines.add(polyline);
         _prevPosition = LatLng(position.latitude, position.longitude);
@@ -87,13 +88,13 @@ class GpsMapAppState extends State<GpsMapApp> {
       body: _initialCameraPosition == null
           ? const Center(child: CircularProgressIndicator())
           : GoogleMap(
-              mapType: MapType.normal,
-              initialCameraPosition: _initialCameraPosition!,
-              onMapCreated: (GoogleMapController controller) {
-                _controller.complete(controller);
-              },
-              polylines: _polylines,
-            ),
+        mapType: MapType.normal,
+        initialCameraPosition: _initialCameraPosition!,
+        onMapCreated: (GoogleMapController controller) {
+          _controller.complete(controller);
+        },
+        polylines: _polylines,
+      ),
     );
   }
 
@@ -103,8 +104,7 @@ class GpsMapAppState extends State<GpsMapApp> {
       target: LatLng(position.latitude, position.longitude),
       zoom: 17,
     );
-    await controller
-        .animateCamera(CameraUpdate.newCameraPosition(cameraPosition));
+    controller.animateCamera(CameraUpdate.newCameraPosition(cameraPosition));
   }
 
   Future<Position> _determinePosition() async {
@@ -120,6 +120,7 @@ class GpsMapAppState extends State<GpsMapApp> {
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.denied) {
+
         return Future.error('Location permissions are denied');
       }
     }
@@ -128,6 +129,7 @@ class GpsMapAppState extends State<GpsMapApp> {
       return Future.error(
           'Location permissions are permanently denied, we cannot request permissions.');
     }
+
     return await Geolocator.getCurrentPosition();
   }
 }
